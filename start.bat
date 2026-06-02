@@ -1,43 +1,39 @@
 @echo off
-chcp 65001 >nul 2>&1
 title Video Automator
 
 echo ============================================
-echo   Video Automator - 起動中...
+echo   Video Automator - Starting...
 echo ============================================
 echo.
 
 cd /d "%~dp0"
 
-REM uv がインストールされているか確認
 where uv >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [エラー] uv が見つかりません。
-    echo https://docs.astral.sh/uv/getting-started/installation/ からインストールしてください。
+    echo [ERROR] uv is not installed.
+    echo Please install from: https://docs.astral.sh/uv/getting-started/installation/
     echo.
     pause
     exit /b 1
 )
 
-REM 仮想環境が存在しない場合は作成・同期
 if not exist ".venv" (
-    echo [初回セットアップ] 仮想環境を作成しています...
+    echo [SETUP] Creating virtual environment...
     uv sync
     if %errorlevel% neq 0 (
-        echo [エラー] 仮想環境の作成に失敗しました。
+        echo [ERROR] Failed to create virtual environment.
         pause
         exit /b 1
     )
     echo.
 )
 
-REM アプリケーション起動
-echo アプリケーションを起動しています...
+echo Starting application...
 uv run python src/main.py
 
 if %errorlevel% neq 0 (
     echo.
-    echo [エラー] アプリケーションの起動に失敗しました。
+    echo [ERROR] Application failed to start.
     pause
     exit /b 1
 )
