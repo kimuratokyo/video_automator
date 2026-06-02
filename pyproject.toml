@@ -1,0 +1,12 @@
+[project]
+name = "video-automator"
+version = "0.1.0"
+description = "動画・画像自動結合デスクトップアプリ"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pyside6>=6.11.1",
+]
+
+[project.scripts]
+video-automator = "src.main:main"
