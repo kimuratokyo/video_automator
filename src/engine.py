@@ -11,6 +11,7 @@ from pathlib import Path
 from PySide6.QtCore import QThread, Signal
 
 from utils import (
+    ALL_TRANSITIONS,
     TRANSITION_MAP,
     build_acrossfade_chain,
     build_xfade_chain,
@@ -147,8 +148,14 @@ def build_ffmpeg_command(
         (コマンドリスト, 合計出力時間（秒）)
     """
     ffmpeg = get_ffmpeg_path()
-    transition_name = TRANSITION_MAP.get(transition)
     n = len(file_paths)
+
+    # トランジション解決: "Random" の場合はリストを渡してカットごとにランダム
+    is_random = (transition == "Random")
+    if is_random:
+        transition_name_or_list: str | list[str] = ALL_TRANSITIONS
+    else:
+        transition_name_or_list = TRANSITION_MAP.get(transition)  # type: ignore
 
     # --- 入力引数の構築 ---
     input_args: list[str] = []
@@ -185,10 +192,10 @@ def build_ffmpeg_command(
     if n == 1:
         # 素材が1つの場合はそのまま
         final_video_label = "[norm0]"
-    elif transition_name and n >= 2:
-        # xfadeトランジション付き結合
+    elif (transition_name_or_list or is_random) and n >= 2:
+        # xfadeトランジション付き結合（ランダムモードではリストを渡す）
         xfade_filter, final_video_label = build_xfade_chain(
-            durations, transition_name, transition_duration
+            durations, transition_name_or_list, transition_duration
         )
         filter_parts.append(xfade_filter)
     else:
@@ -230,7 +237,7 @@ def build_ffmpeg_command(
                 )
                 audio_sources.append(i)
 
-        if len(audio_sources) >= 2 and transition_name:
+        if len(audio_sources) >= 2 and transition_name_or_list:
             # acrossfade チェーン
             # ラベルをリネーム
             for idx, i in enumerate(audio_sources):
@@ -348,7 +355,7 @@ def build_ffmpeg_command(
     cmd.append(str(output_path))
 
     # 合計時間の計算
-    if transition_name and n >= 2:
+    if (transition_name_or_list or is_random) and n >= 2:
         total_duration = sum(durations) - (n - 1) * transition_duration
     else:
         total_duration = sum(durations)

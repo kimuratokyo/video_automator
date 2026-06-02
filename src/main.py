@@ -38,6 +38,7 @@ from config import load_config, save_config
 from engine import FFmpegWorker, build_ffmpeg_command
 from utils import (
     SUPPORTED_EXTENSIONS,
+    TRANSITION_MAP,
     detect_nvenc_support,
     is_valid_audio,
     is_valid_media,
@@ -391,7 +392,10 @@ class MainWindow(QMainWindow):
         row1 = QHBoxLayout()
         row1.addWidget(QLabel("効果:"))
         self.combo_transition = QComboBox()
-        self.combo_transition.addItems(["None", "Fade", "Wipe", "Slide"])
+        transition_items = list(TRANSITION_MAP.keys()) + ["Random"]
+        self.combo_transition.addItems(transition_items)
+        # Random 項目にアイコン的な区切りを追加
+        self.combo_transition.insertSeparator(len(TRANSITION_MAP))
         row1.addWidget(self.combo_transition, 1)
         transition_inner.addLayout(row1)
 

@@ -17,13 +17,51 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a"}
 SUPPORTED_EXTENSIONS = VIDEO_EXTENSIONS | IMAGE_EXTENSIONS
 
-# FFmpegトランジション名マッピング
+# FFmpegトランジション名マッピング（表示名 → FFmpegフィルター名）
 TRANSITION_MAP = {
     "None": None,
+    # ── フェード系 ──
     "Fade": "fade",
-    "Wipe": "wipeleft",
-    "Slide": "slideleft",
+    "Fade Black": "fadeblack",
+    "Fade White": "fadewhite",
+    "Dissolve": "dissolve",
+    # ── ワイプ系 ──
+    "Wipe Left": "wipeleft",
+    "Wipe Right": "wiperight",
+    "Wipe Up": "wipeup",
+    "Wipe Down": "wipedown",
+    # ── スライド系 ──
+    "Slide Left": "slideleft",
+    "Slide Right": "slideright",
+    "Slide Up": "slideup",
+    "Slide Down": "slidedown",
+    # ── スムーズ系 ──
+    "Smooth Left": "smoothleft",
+    "Smooth Right": "smoothright",
+    "Smooth Up": "smoothup",
+    "Smooth Down": "smoothdown",
+    # ── サークル・幾何学系 ──
+    "Circle Open": "circleopen",
+    "Circle Close": "circleclose",
+    "Circle Crop": "circlecrop",
+    "Radial": "radial",
+    # ── 開閉系 ──
+    "Vert Open": "vertopen",
+    "Vert Close": "vertclose",
+    "Horz Open": "horzopen",
+    "Horz Close": "horzclose",
+    # ── その他 ──
+    "Pixelize": "pixelize",
+    "Diagonal TL": "diagtl",
+    "Diagonal TR": "diagtr",
+    "Diagonal BL": "diagbl",
+    "Diagonal BR": "diagbr",
+    "Rect Crop": "rectcrop",
+    "Distance": "distance",
 }
+
+# ランダムモード用: None 以外の全トランジション名リスト
+ALL_TRANSITIONS = [v for v in TRANSITION_MAP.values() if v is not None]
 
 
 def is_video(path: str | Path) -> bool:
@@ -163,22 +201,28 @@ def normalize_filter(
 
 def build_xfade_chain(
     durations: list[float],
-    transition_type: str = "fade",
+    transition_type: str | list[str] = "fade",
     transition_duration: float = 1.0,
 ) -> tuple[str, str]:
     """複数動画のxfadeフィルターチェーンを生成する。
 
     Args:
         durations: 各（正規化済み）動画の長さ（秒）のリスト
-        transition_type: FFmpegのトランジション名
+        transition_type: FFmpegのトランジション名（単一）、
+                         またはリスト（各カットでランダム選択）
         transition_duration: トランジション秒数
 
     Returns:
         (filter文字列, 最終出力ラベル)
     """
+    import random
+
     n = len(durations)
     if n < 2:
         raise ValueError("xfadeには2つ以上の入力が必要です")
+
+    # リストの場合はランダムモード
+    is_random = isinstance(transition_type, list)
 
     filters = []
     cumulative = durations[0]
@@ -187,6 +231,12 @@ def build_xfade_chain(
         offset = cumulative - transition_duration
         if offset < 0:
             offset = 0
+
+        # ランダムモード: カットごとに異なるトランジション
+        if is_random:
+            t = random.choice(transition_type)
+        else:
+            t = transition_type
 
         # 入力ラベル
         if i == 1:
@@ -203,7 +253,7 @@ def build_xfade_chain(
             vout = f"[vx{i}]"
 
         filters.append(
-            f"{vin1}{vin2}xfade=transition={transition_type}"
+            f"{vin1}{vin2}xfade=transition={t}"
             f":duration={transition_duration}:offset={offset}{vout}"
         )
 
